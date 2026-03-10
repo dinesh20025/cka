@@ -3,8 +3,7 @@
   "description": "ArgoCD Helm Template Lab",
   "details": {
     "intro": {
-      "text": "intro.md",
-      "foreground": "setup.sh"
+      "text": "intro.md"      
     },
     "finish": {
       "text": "finish.md"
@@ -12,5 +11,8 @@
   },
   "backend": {
     "imageid": "kubernetes-kubeadm-1node"
+  },
+  "enviornment": {
+    "backend": "setup.sh"
   }
 }
