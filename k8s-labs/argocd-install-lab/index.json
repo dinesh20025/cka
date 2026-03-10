@@ -1,0 +1,17 @@
+{
+  "title": "Install ArgoCD in Kubernetes",
+  "description": "Learn how to install and access ArgoCD in a Kubernetes cluster",
+  "difficulty": "intermediate",
+  "time": "20 minutes",
+  "details": {
+    "intro": {
+      "text": "intro.md"
+    },
+    "finish": {
+      "text": "finish.md"
+    }
+  },
+  "backend": {
+    "imageid": "kubernetes"
+  }
+}
