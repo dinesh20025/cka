@@ -3,13 +3,11 @@
   "description": "ArgoCD Helm Template Lab",
   "details": {
     "intro": {
-      "text": "intro.md"
+      "text": "intro.md",
+      "background": "setup.sh"
     }
   },
   "backend": {
     "imageid": "kubernetes"
-  },
-  "environment": {
-    "background": "setup.sh"
   }
 }
