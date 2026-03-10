@@ -1,17 +1,16 @@
 {
   "title": "Install ArgoCD in Kubernetes",
-  "description": "Learn how to install and access ArgoCD in a Kubernetes cluster",
-  "difficulty": "intermediate",
-  "time": "20 minutes",
+  "description": "ArgoCD Helm Template Lab",
   "details": {
     "intro": {
-      "text": "intro.md"
+      "text": "intro.md",
+      "foreground": "setup.sh"
     },
     "finish": {
       "text": "finish.md"
     }
   },
   "backend": {
-    "imageid": "kubernetes"
+    "imageid": "kubernetes-kubeadm-1node"
   }
 }
