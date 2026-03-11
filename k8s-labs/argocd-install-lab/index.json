@@ -1,13 +1,22 @@
 {
-  "title": "Install ArgoCD in Kubernetes",
-  "description": "ArgoCD Helm Template Lab",
+  "title": "Helm: Render Argo CD manifests (no CRDs)",
   "details": {
     "intro": {
       "text": "intro.md",
-      "background": "setup.sh"
+      "background": "scripts/background.sh"
+    },
+    "steps": [
+      {
+        "title": "Task",
+        "text": "step1.md",
+        "verify": "scripts/verify.sh"
+      }
+    ],
+    "finish": {
+      "text": "finish.md"
     }
   },
   "backend": {
-    "imageid": "kubernetes"
+    "imageid":"kubernetes-kubeadm-1node"
   }
 }
