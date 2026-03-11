@@ -8,7 +8,7 @@
     "steps": [
       {
         "title": "Task",
-        "text": "step1.md",
+        "text": "intro.md",
         "verify": "scripts/verify.sh"
       }
     ],
