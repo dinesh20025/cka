@@ -1,15 +1,14 @@
 {
-  "title": "Workloads: Add sidecar to tail shared logs",
+  "title": "Sidecar",
+  "description": "Add a sidecar container to stream file-based logs",
   "details": {
     "intro": {
-      "text": "intro.md",
-      "background": "scripts/background.sh"
+      "text": "intro.md"
     },
     "steps": [
       {
-        "title": "Task",
         "text": "step1.md",
-        "verify": "scripts/verify.sh"
+        "verify": "verify.sh"
       }
     ],
     "finish": {
@@ -17,6 +16,6 @@
     }
   },
   "backend": {
-    "imageid":"kubernetes-kubeadm-1node"
+    "imageid": "kubernetes-kubeadm-1node"
   }
 }
