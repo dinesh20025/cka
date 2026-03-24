@@ -1,11 +1,38 @@
-## Tasks
-1. Edit Deployment `webapp` to add a sidecar container `log-reader`
-2. Mount a shared volume at `/var/log` in both containers
-3. Sidecar runs: `/bin/sh -c "tail -f /var/log/application.log"`
+# Add a Sidecar Container
 
-## Verify
-```bash
-kubectl rollout status deploy/webapp
-kubectl get pod -l app=webapp -o jsonpath='{.items[0].spec.containers[*].name}'; echo
-kubectl logs deploy/webapp -c log-reader --tail=20
+Update the existing deployment **`wordpress`** in the `default` namespace by adding a sidecar container to the existing pod.
+
+## Requirements
+
+| Field | Value |
+|---|---|
+| Container name | `sidecar` |
+| Image | `busybox:stable` |
+| Command | `/bin/sh -c "tail -f /var/log/wordpress.log"` |
+| Shared volume mount path | `/var/log` |
+
+- Add a shared **emptyDir** volume to the pod
+- Mount the volume at `/var/log` in **both** the `monitor` container and the `sidecar` container
+- This makes `wordpress.log` accessible to both containers
+
+## Hints
+
+Check the current state of the deployment:
+```
+kubectl get deployment wordpress -o yaml
+```
+
+Edit the deployment:
+```
+kubectl edit deployment wordpress
+```
+
+After saving, verify both containers are running:
+```
+kubectl get pods
+```
+
+Check the sidecar is streaming logs:
+```
+kubectl logs deployment/wordpress -c sidecar
 ```
