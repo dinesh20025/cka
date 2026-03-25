@@ -1,6 +1,5 @@
 #!/bin/bash
 
-# Wait for node to be Ready (not just API available)
 echo "[bg] Waiting for node to be Ready..."
 for i in $(seq 1 60); do
   if kubectl get nodes 2>/dev/null | grep -q " Ready"; then
@@ -10,49 +9,48 @@ for i in $(seq 1 60); do
   sleep 5
 done
 
-# Extra buffer — coredns and other system pods need time
 echo "[bg] Waiting for kube-system pods to settle..."
 sleep 20
 
-echo "[bg] Creating deployment/wordpress ..."
+echo "[bg] Creating deployment/webapp ..."
 kubectl apply -f - <<EOF
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: wordpress
+  name: webapp
   namespace: default
 spec:
   replicas: 1
-  revisionHistoryLimit: 10
   selector:
     matchLabels:
-      app: wordpress
-  strategy:
-    rollingUpdate:
-      maxSurge: 25%
-      maxUnavailable: 25%
-    type: RollingUpdate
+      app: webapp
   template:
     metadata:
       labels:
-        app: wordpress
+        app: webapp
     spec:
-      terminationGracePeriodSeconds: 30
       containers:
-        - name: monitor
-          image: lfcert/monitor:latest
-          imagePullPolicy: Always
-          env:
-            - name: LOG_FILENAME
-              value: /var/log/wordpress.log
-          resources: {}
-      dnsPolicy: ClusterFirst
-      restartPolicy: Always
-      schedulerName: default-scheduler
-      securityContext: {}
+        - name: webapp
+          image: busybox:1.36
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              mkdir -p /var/log
+              i=0
+              while true; do
+                echo "$(date -Iseconds) app-line-$i" >> /var/log/application.log
+                i=$((i+1))
+                sleep 2
+              done
+          volumeMounts:
+            - name: log-volume
+              mountPath: /var/log
+      volumes:
+        - name: log-volume
+          emptyDir: {}
 EOF
 
-echo "[bg] Waiting for wordpress deployment to rollout..."
-kubectl rollout status deployment/wordpress --timeout=180s || true
+echo "[bg] Waiting for webapp rollout..."
+kubectl rollout status deployment/webapp --timeout=180s || true
 
-echo "[bg] Done."
+echo "[bg] Done. deployment/webapp is ready."
