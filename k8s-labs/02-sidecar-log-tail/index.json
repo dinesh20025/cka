@@ -3,12 +3,13 @@
   "description": "Add a sidecar container to stream file-based logs",
   "details": {
     "intro": {
-      "text": "intro.md"
+      "text": "intro.md",
+      "background": "background.sh"
     },
     "steps": [
       {
         "text": "step1.md",
-        "verify": "scripts/verify.sh"
+        "verify": "verify.sh"
       }
     ],
     "finish": {
@@ -17,10 +18,5 @@
   },
   "backend": {
     "imageid": "kubernetes-kubeadm-1node"
-  },
-  "environment": {
-    "scripts": [
-      "scripts/background.sh"
-    ]
   }
 }
