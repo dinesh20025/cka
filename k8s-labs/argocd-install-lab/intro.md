@@ -29,19 +29,15 @@ Install **Argo CD** in a Kubernetes cluster using **Helm** while ensuring that *
 
 You may find the following commands useful while solving this task.
 
-helm repo add argocd-repo https://argoproj.github.io/argo-helm
+helm repo add argocd https://argoproj.github.io/argo-helm
+
 helm repo update
 
-helm template argocd argocd-repo/argo-cd \
-  --version 7.6.8 \
-  --namespace gitops \
-  --skip-crds \
-  > /home/candidate/argocd-manifest.yaml
+helm template argocd argocd-repo/argo-cd --version 7.7.3 --namespace argocd --skip-crds > /home/candidate/argocd-manifest.yaml
 
 Check Helm repositories:
 
 helm repo list
-
 
 You will also need to:
 
