@@ -33,7 +33,7 @@ helm repo add argocd https://argoproj.github.io/argo-helm
 
 helm repo update
 
-helm template argocd argocd/argo-cd --version 7.7.3 --namespace argocd --skip-crds > /home/candidate/argocd-manifest.yaml
+helm template argocd argocd/argo-cd --version 7.7.3 --namespace argocd --set crds.install=false > /home/candidate/argocd-manifest.yaml
 
 Check Helm repositories:
 
