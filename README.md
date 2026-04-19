@@ -28,13 +28,10 @@ An existing deployment named `front-end` is running in the `sp-culator` namespac
 ## Answer  
   
 ### Step 1: Verify deployment and container name  
-```bash  
 kubectl -n sp-culator get deploy front-end -o jsonpath='{.spec.template.spec.containers[*].name}{"\n"}'
 
 ### Step 2: Patch deployment to expose container port 80/TCP
-```bash
-kubectl -n sp-culator patch deploy front-end \  
-  -p '{"spec":{"template":{"spec":{"containers":[{"name":"nginx","ports":[{"containerPort":80,"protocol":"TCP"}]}]}}}}'
+kubectl -n sp-culator patch deploy front-end -p '{"spec":{"template":{"spec":{"containers":[{"name":"nginx","ports":[{"containerPort":80,"protocol":"TCP"}]}]}}}}'
 
 ###  Step 3: Create NodePort service front-end-svc
 kubectl -n sp-culator expose deploy front-end --name=front-end-svc --port=80 --target-port=80  --type=NodePort  
