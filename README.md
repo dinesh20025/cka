@@ -30,26 +30,32 @@ An existing deployment named `front-end` is running in the `sp-culator` namespac
 ### Step 1: Verify deployment and container name  
 kubectl -n sp-culator get deploy front-end -o jsonpath='{.spec.template.spec.containers[*].name}{"\n"}'
 
+---
+
 ### Step 2: Patch deployment to expose container port 80/TCP
 kubectl -n sp-culator patch deploy front-end -p '{"spec":{"template":{"spec":{"containers":[{"name":"nginx","ports":[{"containerPort":80,"protocol":"TCP"}]}]}}}}'
+
+---
 
 ###  Step 3: Create NodePort service front-end-svc
 kubectl -n sp-culator expose deploy front-end --name=front-end-svc --port=80 --target-port=80  --type=NodePort  
 
+---
+
 kubectl -n sp-culator get deploy front-end -o yaml | grep -A8 -n "name: nginx"  
 kubectl -n sp-culator get svc front-end-svc -o wide  
 kubectl -n sp-culator describe svc front-end-svc | egrep "Type:|Port:|NodePort:|Endpoints:"  
+
+---
 
 Optional: Edit YAML manually instead of patch
 
 kubectl -n sp-culator edit deploy front-end  
 Add this under the nginx container:
 
+---
 
 ports:  
 - containerPort: 80  
   protocol: TCP  
 Then save and exit, and create the service using Step 3.
-
-
-
