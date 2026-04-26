@@ -1,0 +1,23 @@
+{  
+  "title": "Question 07 - Ingress Resource",  
+  "description": "Create a Service and Ingress in echo-sound namespace",  
+  "details": {  
+    "intro": {  
+      "text": "intro.md",  
+      "background": "setup.sh"  
+    },  
+    "steps": [  
+      {  
+        "title": "Create Service + Ingress",  
+        "text": "step1.md",  
+        "verify": "verify.sh"  
+      }  
+    ],  
+    "finish": {  
+      "text": "finish.md"  
+    }  
+  },  
+  "backend": {  
+    "imageid": "kubernetes-kubeadm-2nodes"  
+  }  
+}
