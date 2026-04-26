@@ -1,53 +1,60 @@
-#!/bin/bash  
+#!/usr/bin/env bash  
 set -euo pipefail  
   
-# 1) Namespace + deployment (student will create service/ingress)  
-kubectl create ns echo-sound --dry-run=client -o yaml | kubectl apply -f -  
+echo "[setup] Preparing lab..."  
   
-cat <<EOF | kubectl apply -f -  
+# Namespace  
+kubectl create namespace echo-sound --dry-run=client -o yaml | kubectl apply -f -  
+  
+# Reset learner-created objects so task always starts clean  
+kubectl -n echo-sound delete svc echo-service --ignore-not-found  
+kubectl -n echo-sound delete ingress echo --ignore-not-found  
+  
+# Ensure expected deployment exists (as per question context)  
+cat <<'EOF' | kubectl apply -f -  
 apiVersion: apps/v1  
 kind: Deployment  
 metadata:  
-  name: echo-deployment  
+  name: echoserver-deployment  
   namespace: echo-sound  
   labels:  
-    app: echo-app  
+    app: echoserver  
 spec:  
   replicas: 1  
   selector:  
     matchLabels:  
-      app: echo-app  
+      app: echoserver  
   template:  
     metadata:  
       labels:  
-        app: echo-app  
+        app: echoserver  
     spec:  
       containers:  
-      - name: echo  
-        image: hashicorp/http-echo:1.0.0  
-        args:  
-        - "-text=echo-ok"  
-        - "-listen=:8080"  
+      - name: echoserver  
+        image: registry.k8s.io/echoserver:1.10  
         ports:  
         - containerPort: 8080  
 EOF  
   
-# 2) Install ingress-nginx (if not already installed)  
-if ! kubectl get ns ingress-nginx >/dev/null 2>&1; then  
+kubectl -n echo-sound rollout status deployment/echoserver-deployment --timeout=180s  
+  
+# Install ingress-nginx only if missing  
+if ! kubectl -n ingress-nginx get deployment ingress-nginx-controller >/dev/null 2>&1; then  
+  echo "[setup] Installing ingress-nginx controller..."  
   kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.11.1/deploy/static/provider/cloud/deploy.yaml  
 fi  
   
-kubectl -n ingress-nginx wait --for=condition=ready pod \  
-  -l app.kubernetes.io/component=controller --timeout=300s  
+kubectl -n ingress-nginx wait --for=condition=Available deployment/ingress-nginx-controller --timeout=300s  
   
-# 3) example.org -> localhost mapping  
-if ! grep -q "example.org" /etc/hosts; then  
+# Host mapping for example.org  
+if ! grep -qE '(^|[[:space:]])example\.org([[:space:]]|$)' /etc/hosts; then  
   echo "127.0.0.1 example.org" >> /etc/hosts  
 fi  
   
-# 4) Port-forward ingress controller to local 80 (for curl http://example.org/echo)  
+# Recreate port-forward (needed so curl http://example.org/echo works inside lab VM)  
 pkill -f "kubectl -n ingress-nginx port-forward svc/ingress-nginx-controller 80:80" || true  
 nohup kubectl -n ingress-nginx port-forward svc/ingress-nginx-controller 80:80 --address 0.0.0.0 \  
   >/tmp/ingress-pf.log 2>&1 &  
   
-echo "Setup complete"  
+sleep 2  
+echo "[setup] Lab ready."
