@@ -1,23 +1,22 @@
 #!/usr/bin/env bash  
-set -euo pipefail  
+set -euxo pipefail  
 exec > >(tee -a /tmp/setup.log) 2>&1  
   
-echo "[setup] started at $(date)"  
+echo "[setup] started"  
   
-# Wait for API  
-for i in {1..90}; do  
-  kubectl get ns >/dev/null 2>&1 && break  
-  sleep 2  
+# 1) Wait for cluster ready  
+until kubectl get nodes 2>/dev/null | grep -q " Ready"; do  
+  sleep 3  
 done  
   
-# Namespace  
-kubectl create ns echo-sound --dry-run=client -o yaml | kubectl apply -f -  
+# 2) Namespace create  
+kubectl create namespace echo-sound --dry-run=client -o yaml | kubectl apply -f -  
   
-# Reset learner-created objects  
+# 3) Clean old learner objects (if any)  
 kubectl -n echo-sound delete svc echo-service --ignore-not-found=true || true  
 kubectl -n echo-sound delete ingress echo --ignore-not-found=true || true  
   
-# ---- Your requested deployment YAML ----  
+# 4) Create base deployment (your requested YAML)  
 cat <<'EOF' | kubectl apply -f -  
 apiVersion: apps/v1  
 kind: Deployment  
@@ -40,24 +39,23 @@ spec:
         ports:  
         - containerPort: 8080  
 EOF  
-# ----------------------------------------  
   
-kubectl -n echo-sound rollout status deploy/echoserver-deployment --timeout=180s || true  
+# 5) Wait a bit for deployment object/pod  
+kubectl -n echo-sound rollout status deployment/echoserver-deployment --timeout=180s || true  
   
-# Install ingress-nginx if missing  
-if ! kubectl -n ingress-nginx get deploy ingress-nginx-controller >/dev/null 2>&1; then  
+# 6) Install ingress-nginx if missing  
+if ! kubectl get ns ingress-nginx >/dev/null 2>&1; then  
   kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.11.1/deploy/static/provider/cloud/deploy.yaml  
 fi  
   
-kubectl -n ingress-nginx wait --for=condition=Available deploy/ingress-nginx-controller --timeout=300s || true  
+kubectl -n ingress-nginx wait --for=condition=Available deployment/ingress-nginx-controller --timeout=300s || true  
   
-# Host mapping  
-grep -qE '(^|[[:space:]])example\.org([[:space:]]|$)' /etc/hosts || echo "127.0.0.1 example.org" >> /etc/hosts  
+# 7) example.org mapping  
+grep -q "example.org" /etc/hosts || echo "127.0.0.1 example.org" >> /etc/hosts  
   
-# Port-forward for curl checks  
+# 8) Port-forward for curl checks  
 pkill -f "kubectl -n ingress-nginx port-forward svc/ingress-nginx-controller 80:80" || true  
-nohup kubectl -n ingress-nginx port-forward svc/ingress-nginx-controller 80:80 --address 0.0.0.0 \  
-  >/tmp/ingress-pf.log 2>&1 &  
+nohup kubectl -n ingress-nginx port-forward svc/ingress-nginx-controller 80:80 --address 0.0.0.0 >/tmp/ingress-pf.log 2>&1 &  
   
 touch /tmp/lab_setup_done  
-echo "[setup] completed at $(date)"
+echo "[setup] completed"  
