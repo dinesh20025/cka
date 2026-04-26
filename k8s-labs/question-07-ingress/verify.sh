@@ -3,63 +3,55 @@ set -euo pipefail
   
 NS="echo-sound"  
   
-fail() { echo "❌ $1"; exit 1; }  
-pass() { echo "✅ $1"; }  
+fail() {  
+  echo "❌ $1"  
+  exit 1  
+}  
   
-# Basic checks  
-kubectl get ns "$NS" >/dev/null 2>&1 || fail "Namespace $NS not found"  
-kubectl -n "$NS" get deployment echoserver-deployment >/dev/null 2>&1 || fail "Deployment echoserver-deployment not found"  
+pass() {  
+  echo "✅ $1"  
+}  
   
-ready="$(kubectl -n "$NS" get deploy echoserver-deployment -o jsonpath='{.status.readyReplicas}' 2>/dev/null || echo 0)"  
-[[ "${ready:-0}" -ge 1 ]] || fail "Deployment echoserver-deployment is not ready"  
+# 1) Namespace + base deployment check  
+kubectl get ns "${NS}" >/dev/null 2>&1 || fail "Namespace ${NS} nahi mila"  
+kubectl -n "${NS}" get deploy echoserver-deployment >/dev/null 2>&1 || fail "Base deployment echoserver-deployment missing"  
   
-# Service checks  
-kubectl -n "$NS" get svc echo-service >/dev/null 2>&1 || fail "Service echo-service not found"  
+# 2) Service checks  
+kubectl -n "${NS}" get svc echo-service >/dev/null 2>&1 || fail "Service echo-service nahi mila"  
   
-stype="$(kubectl -n "$NS" get svc echo-service -o jsonpath='{.spec.type}')"  
-[[ "$stype" == "NodePort" ]] || fail "Service type must be NodePort (got: $stype)"  
+svc_type="$(kubectl -n "${NS}" get svc echo-service -o jsonpath='{.spec.type}')"  
+[[ "${svc_type}" == "NodePort" ]] || fail "Service type NodePort hona chahiye, mila: ${svc_type}"  
   
-svc_port="$(kubectl -n "$NS" get svc echo-service -o jsonpath='{range .spec.ports[*]}{.port}{" "}{end}')"  
-echo "$svc_port" | grep -qw "8080" || fail "Service port 8080 not found"  
+port_line="$(kubectl -n "${NS}" get svc echo-service -o jsonpath='{range .spec.ports[*]}{.port}:{.targetPort}:{.nodePort}{"\n"}{end}')"  
+echo "${port_line}" | grep -q '^8080:8080:' || fail "echo-service me port 8080 -> targetPort 8080 mapping missing"  
   
-target_port="$(kubectl -n "$NS" get svc echo-service -o jsonpath='{range .spec.ports[?(@.port==8080)]}{.targetPort}{"\n"}{end}' | head -n1)"  
-[[ "$target_port" == "8080" ]] || fail "targetPort for service port 8080 must be 8080 (got: $target_port)"  
+# 3) Endpoints check (service actually backing pods)  
+ep_ips="$(kubectl -n "${NS}" get endpoints echo-service -o jsonpath='{.subsets[*].addresses[*].ip}' || true)"  
+[[ -n "${ep_ips}" ]] || fail "echo-service ke endpoints nahi bane (pod not ready / selector mismatch)"  
   
-node_port="$(kubectl -n "$NS" get svc echo-service -o jsonpath='{range .spec.ports[?(@.port==8080)]}{.nodePort}{"\n"}{end}' | head -n1)"  
-[[ -n "$node_port" ]] || fail "NodePort not allocated on echo-service:8080"  
+# 4) Ingress checks  
+kubectl -n "${NS}" get ingress echo >/dev/null 2>&1 || fail "Ingress echo nahi mila"  
   
-# Endpoints should exist  
-ep_ips="$(kubectl -n "$NS" get endpoints echo-service -o jsonpath='{.subsets[*].addresses[*].ip}')"  
-[[ -n "$ep_ips" ]] || fail "echo-service has no endpoints"  
+rule_dump="$(kubectl -n "${NS}" get ingress echo -o jsonpath='{range .spec.rules[*]}{.host}{"|"}{range .http.paths[*]}{.path}{":"}{.backend.service.name}{":"}{.backend.service.port.number}{"\n"}{end}{end}')"  
+echo "${rule_dump}" | grep -q '^example.org|/echo:echo-service:8080$' || fail "Ingress rule expected: example.org /echo -> echo-service:8080"  
   
-# Ingress checks  
-kubectl -n "$NS" get ingress echo >/dev/null 2>&1 || fail "Ingress echo not found"  
+# 5) Ingress controller availability  
+kubectl -n ingress-nginx get deploy ingress-nginx-controller >/dev/null 2>&1 || fail "ingress-nginx-controller deployment missing"  
   
-rules="$(kubectl -n "$NS" get ingress echo -o jsonpath='{range .spec.rules[*]}{.host}{" "}{range .http.paths[*]}{.path}{" "}{.backend.service.name}{" "}{.backend.service.port.number}{"\n"}{end}{end}')"  
-echo "$rules" | grep -q "^example\.org /echo echo-service 8080$" || fail "Ingress rule must be example.org /echo -> echo-service:8080"  
-  
-# Ensure host mapping and port-forward available for curl test  
-if ! grep -qE '(^|[[:space:]])example\.org([[:space:]]|$)' /etc/hosts; then  
-  echo "127.0.0.1 example.org" >> /etc/hosts  
-fi  
-  
+# 6) Ensure port-forward running for functional test  
 if ! pgrep -f "kubectl -n ingress-nginx port-forward svc/ingress-nginx-controller 80:80" >/dev/null 2>&1; then  
-  nohup kubectl -n ingress-nginx port-forward svc/ingress-nginx-controller 80:80 --address 0.0.0.0 \  
-    >/tmp/ingress-pf.log 2>&1 &  
+  nohup kubectl -n ingress-nginx port-forward svc/ingress-nginx-controller 80:80 --address 127.0.0.1 >/tmp/ingress-pf.log 2>&1 &  
   sleep 2  
 fi  
   
-# Final functional check  
-ok=0  
+# 7) Functional test via ingress  
 for _ in {1..25}; do  
-  code="$(curl -o /dev/null -s -w "%{http_code}" http://example.org/echo || true)"  
-  if [[ "$code" == "200" ]]; then  
-    ok=1  
-    break  
+  code="$(curl -s -o /dev/null -w "%{http_code}" -H "Host: example.org" http://127.0.0.1/echo || true)"  
+  if [[ "${code}" == "200" ]]; then  
+    pass "All checks passed 🎉"  
+    exit 0  
   fi  
   sleep 2  
 done  
   
-[[ "$ok" -eq 1 ]] || fail "curl check failed: expected 200 from http://example.org/echo"  
-  
-pass "All checks passed."
+fail "Functional test fail: expected HTTP 200 from ingress (Host: example.org, path: /echo)"
