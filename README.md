@@ -59,3 +59,19 @@ ports:
 - containerPort: 80  
   protocol: TCP  
 Then save and exit, and create the service using Step 3.
+
+---
+
+## question for Apply a taint to a node and schedule a pod with the correct toleration
+
+k get nodes
+k describe node | grep -i taint
+k taint node controlplane IT=Kiddie:NoSchedule
+k describe node | grep -i taint
+
+k run pod-toleration --image=redis --dry-run=client -o yaml > pod-toleration.yaml
+vi pod-toleration.yaml
+
+k apply -f pod-toleration.yaml
+k get po
+k describe po pod-toleration
