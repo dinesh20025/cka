@@ -82,3 +82,148 @@ k apply -f pod-toleration.yaml
 k get po
 
 k describe po pod-toleration
+```
+---
+
+🛠️ Kubernetes Control Plane Recovery (etcd Migration Issue)
+📌 Problem Statement
+A single-node kubeadm cluster was migrated to a new machine and became non-functional:
+
+
+Control plane was down ❌
+
+
+Node was in NotReady state ❌
+
+
+kubectl was not working ❌
+
+
+Root Cause Hint
+The cluster was previously using an external etcd, but the new setup should use local etcd (kubeadm default).
+
+🔍 Symptoms
+```bash
+kubectl get nodes
+```
+The connection to the server <IP>:6443 was refused
+
+```bash
+crictl ps -a
+
+
+kube-apiserver → Exited ❌
+
+
+kube-controller-manager → Exited ❌
+
+
+kube-scheduler → Exited ❌
+
+
+etcd → Running ✅
+
+```
+
+🧠 Root Cause
+kube-apiserver was still configured to connect to an old external etcd endpoint:
+--etcd-servers=https://10.0.0.100:2379
+Additionally, etcd TLS configuration was commented out, preventing secure communication.
+
+🛠️ Solution
+🔧 Step 1: Fix kube-apiserver configuration
+Edit the static pod manifest:
+vi /etc/kubernetes/manifests/kube-apiserver.yaml
+
+❌ Incorrect Configuration
+--etcd-servers=https://10.0.0.100:2379#--etcd-cafile=/etc/kubernetes/pki/etcd/ca.crt#--etcd-certfile=/etc/kubernetes/pki/apiserver-etcd-client.crt#--etcd-keyfile=/etc/kubernetes/pki/apiserver-etcd-client.key
+
+✅ Correct Configuration
+--etcd-servers=https://127.0.0.1:2379--etcd-cafile=/etc/kubernetes/pki/etcd/ca.crt--etcd-certfile=/etc/kubernetes/pki/apiserver-etcd-client.crt--etcd-keyfile=/etc/kubernetes/pki/apiserver-etcd-client.key
+
+🔄 Step 2: Restart kubelet
+systemctl restart kubelet
+
+kubelet will automatically recreate static pods
+
+
+⏳ Step 3: Verify Control Plane Components
+crictl ps
+Expected:
+
+
+kube-apiserver → Running ✅
+
+
+kube-controller-manager → Running ✅
+
+
+kube-scheduler → Running ✅
+
+
+etcd → Running ✅
+
+
+
+🔍 Step 4: Verify Cluster Status
+kubectl get nodes
+Expected:
+controlplane   Ready
+
+🔍 Step 5: Verify System Pods
+kubectl get pods -n kube-system
+All pods should be in Running state.
+
+🧠 Key Learnings
+
+
+Kubernetes control plane depends heavily on etcd connectivity
+
+
+Wrong etcd endpoint = complete cluster failure
+
+
+Static pod manifests are located at:
+/etc/kubernetes/manifests/
+
+
+kubelet automatically manages static pods
+
+
+
+🔥 Troubleshooting Flow (CKA Cheat Sheet)
+kubectl not working    ↓Check containers → crictl ps    ↓Check kube-apiserver logs    ↓Look for etcd connection errors    ↓Fix kube-apiserver.yaml    ↓Restart kubelet    ↓Cluster restored ✅
+
+🚀 Final Outcome
+
+
+Control plane restored ✅
+
+
+Node status → Ready ✅
+
+
+All system pods running ✅
+
+
+
+🎯 One-Line Summary
+
+Misconfigured etcd endpoint caused API server failure, fixing it restored the entire cluster.
+
+
+Agar chaho toh main tumhare repo ke liye:
+
+
+README badges
+
+
+diagrams (architecture)
+
+
+multiple CKA scenarios
+
+
+bhi bana deta hoon 👍
+
+
