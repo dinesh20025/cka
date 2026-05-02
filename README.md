@@ -205,6 +205,38 @@ Node status → Ready ✅
 
 All system pods running ✅
 
+```bash
+
+k get nod
+    4  ls /etc/kubernetes
+    5  ls /etc/kubernetes/manifests/
+    6  cd /etc/kubernetes/manifests/
+    7  cat kube-apiserver.yaml
+    8  clear
+    9  systemctl status kubelet
+   10  clear
+   11  ls
+   12  crictl ps -a
+   13  cat kube-controller-manager.yaml
+   14  vi kube-controller-manager.yaml
+   15  crictl ps -a
+   16  k get po
+   17  cat kube-controller-manager.yaml
+   18  crictl ps -a | grep kube-apiserver
+   19  crictl logs 6f9eeb0cff981
+   20  crictl logs 49b2c64240197
+   21  cat kube-apiserver.yaml
+   22  vi kube-apiserver.yaml
+   23  crictl ps -a | grep kube-apiserver
+   24  crictl ps -a
+   25  crictl logs bf7a56045c1c3
+   26  systemctl restart kubelet
+   27  crictl ps
+   28  kubectl get po
+   29  kubectl get node
+
+```
+
 
 
 🎯 One-Line Summary
@@ -212,18 +244,9 @@ All system pods running ✅
 Misconfigured etcd endpoint caused API server failure, fixing it restored the entire cluster.
 
 
-Agar chaho toh main tumhare repo ke liye:
 
 
-README badges
 
 
-diagrams (architecture)
-
-
-multiple CKA scenarios
-
-
-bhi bana deta hoon 👍
 
 
