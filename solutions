@@ -1,0 +1,39 @@
+# 🧠 ArgoCD Helm + CRDs (1-Page Cheat Sheet)
+
+---
+
+## 🎯 Scenario Types 
+
+### ✅ Case 1: "CRDs already installed"
+✔ use: `--set crds.install=false`  
+✔ DO NOT delete CRDs  
+
+---
+
+### ✅ Case 2: "Normal install"
+✔ no flag needed  
+✔ Helm CRDs khud install karega  
+
+---
+
+### ❌ Case 3: "Generate YAML only"
+✔ use: `helm template`  
+✔ NO `helm install`  
+✔ skip CRDs  
+
+---
+
+## ⚡ Core Commands
+
+### 🔹 Add repo
+```bash
+helm repo add argocd https://argoproj.github.io/argo-helm
+helm repo update
+
+helm template argocd argocd/argo-cd --version 9.1.4 --namespace argocd  --set crds.install=false > /root/argo-helm.yaml
+
+grep -c "CustomResourceDefinition" /root/argo-helm.yaml
+# 0 = ✅ correct
+
+helm install argocd argocd/argo-cd  --version 9.1.4  -n argocd   --set crds.install=false
+```
