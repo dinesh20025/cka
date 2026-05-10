@@ -97,15 +97,17 @@ Memory: Must not exceed 448Mi (anything at or below is accepted)
 init-setup container: ≤ 225m CPU, ≤ 448Mi memory
 python-app container: ≤ 225m CPU, ≤ 448Mi memory
 🛠️ Implementation Steps (Imperative Commands)
+```bash
 Step 1: Scale down deployment
 kubectl scale deployment python-webapp -n python-ml-ns --replicas=0
 Verify:
-
+```
+```bash
 kubectl get deployment python-webapp -n python-ml-ns
 kubectl get pods -n python-ml-ns
 Step 2: Calculate resources
 Given:
-
+```
 Total CPU: 1000m, Total Memory: 1803.26171875 Mi
 Currently allocated: CPU 125m, Memory 100Mi
 System overhead: 20%, Number of pods: 3
@@ -119,17 +121,25 @@ Subtract allocated Memory = 1442.609375 Mi - 100Mi = 1342.609375 Mi
 
 Per Pod CPU = 675m ÷ 3 = 225m
 Per Pod Memory = 1342.609375 Mi ÷ 3 = 447.54 Mi ≈ 447Mi (or 448Mi)
+```bash
 Step 3: Set resources using imperative commands
 kubectl set resources deployment python-webapp \
   -n python-ml-ns \
   --requests=cpu=225m,memory=447Mi \
   --limits=cpu=225m,memory=447Mi
+```
+
+```bash
 Step 4: Scale back to 3 replicas
 kubectl scale deployment python-webapp -n python-ml-ns --replicas=3
+```
+
+```bash
 Step 5: Verify pods are running
 kubectl get pods -n python-ml-ns
 kubectl wait --for=condition=ready pod -l app=python-webapp -n python-ml-ns --timeout=120s
 Expected output: All 3 pods with status Running and READY 1/1
+```
 
 Step 6: Verify resource configuration
 POD=$(kubectl get pod -n python-ml-ns -l app=python-webapp -o jsonpath='{.items[0].metadata.name}')
